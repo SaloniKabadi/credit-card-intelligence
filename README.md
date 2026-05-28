@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 💳 Credit Card Customer Intelligence Platform
 
 > End-to-end banking analytics project: ETL pipeline, SQL analysis,
@@ -29,3 +30,7 @@ Source: [Kaggle — Credit Card Customers](https://www.kaggle.com/datasets/saksh
 
 10,000+ bank customers with demographic and transaction features.
 Target variable: `Attrition_Flag` (Existing vs Attrited Customer)
+=======
+# credit-card-intelligence
+Predicts credit card churn at 0.93 AUC · ETL pipeline · SQL segmentation · Power BI dashboard · Python + XGBoost
+>>>>>>> 49ef282595c42f4f62682765a503e2c186bc23b5
