@@ -1,0 +1,4 @@
+risk_segment,total_customers,churned,churn_rate_pct,avg_transaction_amt
+Low Risk (<40%),6906,1347.0,19.5,4606.0
+High Risk (>70%),1062,137.0,12.9,3603.0
+Medium Risk (40-70%),2159,143.0,6.62,4151.0

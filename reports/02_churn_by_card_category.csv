@@ -1,0 +1,5 @@
+Card_Category,total,churned,churn_rate_pct
+Platinum,20,5.0,25.0
+Gold,116,21.0,18.1
+Blue,9436,1519.0,16.1
+Silver,555,82.0,14.77
