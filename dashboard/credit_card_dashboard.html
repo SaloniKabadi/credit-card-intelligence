@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Credit Card Intelligence Dashboard</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --cyan: #39d0d8;
+      --green: #3fb950;
+      --red: #f85149;
+      --amber: #d29922;
+      --purple: #bc8cff;
+      --blue: #58a6ff;
+      --radius: 10px;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 32px;
+      height: 60px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .topbar-left { display: flex; align-items: center; gap: 12px; }
+    .logo {
+      width: 32px; height: 32px; border-radius: 8px;
+      background: linear-gradient(135deg, var(--cyan), var(--blue));
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .topbar h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.2px; }
+    .topbar-right { display: flex; gap: 8px; }
+    .pill {
+      font-size: 11px; font-weight: 600;
+      padding: 3px 10px; border-radius: 20px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+    .pill.green { border-color: rgba(63,185,80,.4); color: var(--green); background: rgba(63,185,80,.08); }
+    .pill.cyan  { border-color: rgba(57,208,216,.4); color: var(--cyan);  background: rgba(57,208,216,.08); }
+
+    /* ── NAV TABS ── */
+    .nav {
+      display: flex;
+      gap: 2px;
+      padding: 0 32px;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-btn {
+      background: none; border: none; cursor: pointer;
+      font-family: inherit; font-size: 13px; font-weight: 500;
+      color: var(--muted);
+      padding: 12px 16px;
+      border-bottom: 2px solid transparent;
+      transition: color .15s, border-color .15s;
+    }
+    .nav-btn:hover { color: var(--text); }
+    .nav-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+    /* ── LAYOUT ── */
+    .page { display: none; padding: 28px 32px 60px; }
+    .page.active { display: block; }
+
+    .section-title {
+      font-size: 11px; font-weight: 600; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--muted);
+      margin-bottom: 16px;
+    }
+
+    /* ── KPI STRIP ── */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px 18px;
+      transition: border-color .2s, transform .2s;
+      cursor: default;
+    }
+    .kpi:hover { border-color: var(--cyan); transform: translateY(-2px); }
+    .kpi-val {
+      font-size: 26px; font-weight: 700;
+      letter-spacing: -1px; line-height: 1;
+      margin-bottom: 4px;
+    }
+    .kpi-lbl { font-size: 11px; color: var(--muted); font-weight: 500; }
+
+    /* ── CHART GRID ── */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .grid-13 { display: grid; grid-template-columns: 1fr 2fr; gap: 16px; margin-bottom: 16px; }
+
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      transition: border-color .2s;
+    }
+    .card:hover { border-color: #444c56; }
+    .card-title {
+      font-size: 13px; font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .card-sub { font-size: 11px; color: var(--muted); margin-bottom: 16px; }
+    .chart-wrap { position: relative; }
+
+    /* ── INSIGHT BADGE ── */
+    .insight {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 11px; color: var(--muted);
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 4px 10px;
+      margin-top: 12px;
+    }
+    .insight span { color: var(--text); font-weight: 600; }
+
+    /* ── DONUT CENTRE ── */
+    .donut-wrap { position: relative; }
+    .donut-centre {
+      position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center; pointer-events: none;
+    }
+    .donut-centre .big { font-size: 28px; font-weight: 700; color: var(--red); }
+    .donut-centre .small { font-size: 11px; color: var(--muted); }
+
+    /* ── RISK TABLE ── */
+    .risk-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    .risk-table th {
+      text-align: left; font-size: 11px; font-weight: 600;
+      color: var(--muted); text-transform: uppercase;
+      letter-spacing: .6px; padding: 0 0 10px;
+      border-bottom: 1px solid var(--border);
+    }
+    .risk-table td { padding: 10px 0; border-bottom: 1px solid var(--border); }
+    .risk-table tr:last-child td { border-bottom: none; }
+    .bar-bg { background: var(--surface2); border-radius: 4px; height: 6px; width: 100%; }
+    .bar-fill { height: 6px; border-radius: 4px; }
+
+    /* ── FOOTER ── */
+    .footer {
+      text-align: center; padding: 20px;
+      font-size: 11px; color: var(--muted);
+      border-top: 1px solid var(--border);
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">💳</div>
+    <h1>Credit Card Intelligence</h1>
+  </div>
+  <div class="topbar-right">
+    <span class="pill cyan">XGBoost AUC 0.9932</span>
+    <span class="pill green">10,127 Customers</span>
+    <span class="pill">May 2026</span>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="show('p1',this)">Overview</button>
+  <button class="nav-btn" onclick="show('p2',this)">Segmentation</button>
+  <button class="nav-btn" onclick="show('p3',this)">Risk Analysis</button>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 1 — OVERVIEW
+═══════════════════════════════════════════════════════════ -->
+<div id="p1" class="page active">
+
+  <div class="section-title">Key Metrics</div>
+  <div class="kpi-row">
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--cyan)">10,127</div>
+      <div class="kpi-lbl">Total Customers</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--red)">1,627</div>
+      <div class="kpi-lbl">Churned</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--green)">8,500</div>
+      <div class="kpi-lbl">Retained</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--amber)">16.07%</div>
+      <div class="kpi-lbl">Churn Rate</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--blue)">$8,632</div>
+      <div class="kpi-lbl">Avg Credit Limit</div>
+    </div>
+    <div class="kpi">
+      <div class="kpi-val" style="color:var(--purple)">$4,404</div>
+      <div class="kpi-lbl">Avg Transaction</div>
+    </div>
+  </div>
+
+  <div class="grid-13">
+    <!-- Donut -->
+    <div class="card">
+      <div class="card-title">Churn Breakdown</div>
+      <div class="card-sub">Attrited vs existing customers</div>
+      <div class="donut-wrap">
+        <div class="chart-wrap" style="height:220px">
+          <canvas id="donutChart"></canvas>
+        </div>
+        <div class="donut-centre">
+          <div class="big">16.07%</div>
+          <div class="small">churn rate</div>
+        </div>
+      </div>
+      <div class="insight">🔴 <span>1,627</span> customers lost · <span>8,500</span> retained</div>
+    </div>
+
+    <!-- Bar: churn by card -->
+    <div class="card">
+      <div class="card-title">Churn Rate by Card Category</div>
+      <div class="card-sub">Platinum cards show highest attrition risk</div>
+      <div class="chart-wrap" style="height:220px">
+        <canvas id="cardChart"></canvas>
+      </div>
+      <div class="insight">⚠️ Platinum churn at <span>25%</span> — 3× higher than Silver</div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <!-- Income churn -->
+    <div class="card">
+      <div class="card-title">Churn Rate by Income Bracket</div>
+      <div class="card-sub">Higher earners churn slightly more</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="incomeChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Trans by churn -->
+    <div class="card">
+      <div class="card-title">Avg Transaction Amount</div>
+      <div class="card-sub">Churned customers spend significantly less</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="transChart"></canvas>
+      </div>
+      <div class="insight">📉 Churned customers spend <span>$1,560 less</span> on average</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 2 — SEGMENTATION
+═══════════════════════════════════════════════════════════ -->
+<div id="p2" class="page">
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Churn Rate by Education Level</div>
+      <div class="card-sub">Doctorate holders churn most — possibly higher mobility</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="eduChart"></canvas>
+      </div>
+      <div class="insight">🎓 Doctorate: <span>21.06%</span> vs High School: <span>15.2%</span></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Churn Rate by Gender</div>
+      <div class="card-sub">Female customers churn at a higher rate</div>
+      <div class="chart-wrap" style="height:260px">
+        <canvas id="genderChart"></canvas>
+      </div>
+      <div class="insight">👩 Female: <span>17.36%</span> · 👨 Male: <span>14.62%</span></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Churn Rate by Age Group</div>
+      <div class="card-sub">Middle-aged customers (40s–50s) show highest churn</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="ageChart"></canvas>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Months Inactive vs Churn Rate</div>
+      <div class="card-sub">Inactivity is a strong churn predictor</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="inactChart"></canvas>
+      </div>
+      <div class="insight">📊 0 months inactive: <span>51.7%</span> churn (likely already leaving)</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     PAGE 3 — RISK ANALYSIS
+═══════════════════════════════════════════════════════════ -->
+<div id="p3" class="page">
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Risk Segments by Utilization</div>
+      <div class="card-sub">Counterintuitively, low utilization = higher churn</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="riskChart"></canvas>
+      </div>
+      <div class="insight">💡 Low utilization customers churn at <span>19.5%</span> — disengaged users</div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Churn Rate by Spending Segment</div>
+      <div class="card-sub">Low spenders are highest churn risk</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="spendChart"></canvas>
+      </div>
+      <div class="insight">🛒 Low spenders: <span>21.35%</span> vs Top spenders: <span>9.32%</span></div>
+    </div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-title">Contacts Count vs Churn Rate</div>
+      <div class="card-sub">More contacts with bank = higher churn signal</div>
+      <div class="chart-wrap" style="height:240px">
+        <canvas id="contactsChart"></canvas>
+      </div>
+      <div class="insight">📞 6 contacts: <span>100%</span> churn — critical intervention point</div>
+    </div>
+
+    <!-- Risk summary table -->
+    <div class="card">
+      <div class="card-title">Risk Summary</div>
+      <div class="card-sub">Key churn drivers ranked by impact</div>
+      <table class="risk-table" style="margin-top:8px">
+        <thead>
+          <tr>
+            <th>Driver</th>
+            <th>Segment</th>
+            <th style="width:120px">Churn Rate</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Contacts</td>
+            <td style="color:var(--muted)">6 contacts</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="bar-bg"><div class="bar-fill" style="width:100%;background:var(--red)"></div></div>
+                <span style="font-size:12px;font-weight:600;color:var(--red)">100%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Inactivity</td>
+            <td style="color:var(--muted)">0 months active</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="bar-bg"><div class="bar-fill" style="width:52%;background:var(--red)"></div></div>
+                <span style="font-size:12px;font-weight:600;color:var(--red)">51.7%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Card Type</td>
+            <td style="color:var(--muted)">Platinum</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="bar-bg"><div class="bar-fill" style="width:25%;background:var(--amber)"></div></div>
+                <span style="font-size:12px;font-weight:600;color:var(--amber)">25%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Spending</td>
+            <td style="color:var(--muted)">Low spenders</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="bar-bg"><div class="bar-fill" style="width:21%;background:var(--amber)"></div></div>
+                <span style="font-size:12px;font-weight:600;color:var(--amber)">21.35%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Education</td>
+            <td style="color:var(--muted)">Doctorate</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="bar-bg"><div class="bar-fill" style="width:21%;background:var(--purple)"></div></div>
+                <span style="font-size:12px;font-weight:600;color:var(--purple)">21.06%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>Utilization</td>
+            <td style="color:var(--muted)">Low risk segment</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px">
+                <div class="bar-bg"><div class="bar-fill" style="width:20%;background:var(--blue)"></div></div>
+                <span style="font-size:12px;font-weight:600;color:var(--blue)">19.5%</span>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer">
+  Built by Saloni Kabadi · Credit Card Customer Intelligence Platform · Python · SQL · XGBoost · Chart.js
+</div>
+
+<script>
+// ── Shared defaults ──────────────────────────────────────────────────────────
+Chart.defaults.color = '#8b949e';
+Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif";
+Chart.defaults.font.size = 12;
+
+const CYAN   = '#39d0d8';
+const GREEN  = '#3fb950';
+const RED    = '#f85149';
+const AMBER  = '#d29922';
+const PURPLE = '#bc8cff';
+const BLUE   = '#58a6ff';
+const BORDER = '#30363d';
+
+function barOpts(horizontal) {
+  return {
+    responsive: true, maintainAspectRatio: false,
+    indexAxis: horizontal ? 'y' : 'x',
+    plugins: { legend: { display: false }, tooltip: { callbacks: {
+      label: ctx => ` ${ctx.parsed[horizontal ? 'x' : 'y'].toFixed(1)}%`
+    }}},
+    scales: {
+      x: { grid: { color: BORDER }, ticks: { color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e' } }
+    }
+  };
+}
+
+// ── Donut ────────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('donutChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Retained', 'Churned'],
+    datasets: [{ data: [8500, 1627],
+      backgroundColor: [GREEN, RED],
+      borderColor: '#161b22', borderWidth: 3,
+      hoverOffset: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '72%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true, pointStyleWidth: 8 } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${ctx.parsed.toLocaleString()}` } }
+    }
+  }
+});
+
+// ── Card category ────────────────────────────────────────────────────────────
+new Chart(document.getElementById('cardChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Platinum', 'Gold', 'Blue', 'Silver'],
+    datasets: [{
+      data: [25.0, 18.1, 16.1, 14.77],
+      backgroundColor: [RED, AMBER, CYAN, BLUE],
+      borderRadius: 6, borderSkipped: false
+    }]
+  },
+  options: {
+    ...barOpts(false),
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' }, max: 30 }
+    }
+  }
+});
+
+// ── Income ───────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('incomeChart'), {
+  type: 'bar',
+  data: {
+    labels: ['$120K+', '<$40K', 'Unknown', '$80K-$120K', '$40K-$60K', '$60K-$80K'],
+    datasets: [{
+      data: [17.33, 17.19, 16.82, 15.77, 15.14, 13.48],
+      backgroundColor: PURPLE + 'cc',
+      borderColor: PURPLE,
+      borderWidth: 1,
+      borderRadius: 5, borderSkipped: false
+    }]
+  },
+  options: {
+    ...barOpts(true),
+    scales: {
+      x: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' } },
+      y: { grid: { display: false }, ticks: { color: '#8b949e', font: { size: 11 } } }
+    }
+  }
+});
+
+// ── Transaction by churn ─────────────────────────────────────────────────────
+new Chart(document.getElementById('transChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Retained', 'Churned'],
+    datasets: [{
+      data: [4655, 3095],
+      backgroundColor: [GREEN + 'cc', RED + 'cc'],
+      borderColor: [GREEN, RED],
+      borderWidth: 1,
+      borderRadius: 8, borderSkipped: false
+    }]
+  },
+  options: {
+    ...barOpts(false),
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => '$' + v.toLocaleString() } }
+    },
+    plugins: { legend: { display: false }, tooltip: { callbacks: {
+      label: ctx => ` $${ctx.parsed.y.toLocaleString()}`
+    }}}
+  }
+});
+
+// ── Education ────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('eduChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Doctorate', 'Post-Grad', 'Unknown', 'Uneducated', 'Graduate', 'College', 'High School'],
+    datasets: [{
+      data: [21.06, 17.83, 16.85, 15.94, 15.57, 15.2, 15.2],
+      backgroundColor: labels => {
+        const v = [21.06, 17.83, 16.85, 15.94, 15.57, 15.2, 15.2];
+        return v.map(x => x > 18 ? RED + 'cc' : x > 16 ? AMBER + 'cc' : BLUE + 'cc');
+      },
+      borderRadius: 5, borderSkipped: false
+    }]
+  },
+  options: {
+    ...barOpts(true),
+    scales: {
+      x: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' } },
+      y: { grid: { display: false }, ticks: { color: '#8b949e', font: { size: 11 } } }
+    }
+  }
+});
+
+// ── Gender ───────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('genderChart'), {
+  type: 'doughnut',
+  data: {
+    labels: ['Female (17.36%)', 'Male (14.62%)'],
+    datasets: [{
+      data: [17.36, 14.62],
+      backgroundColor: [PURPLE, BLUE],
+      borderColor: '#161b22', borderWidth: 3,
+      hoverOffset: 6
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    cutout: '60%',
+    plugins: {
+      legend: { position: 'bottom', labels: { padding: 16, usePointStyle: true } },
+      tooltip: { callbacks: { label: ctx => ` ${ctx.label}` } }
+    }
+  }
+});
+
+// ── Age ──────────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('ageChart'), {
+  type: 'line',
+  data: {
+    labels: ['20s', '30s', '40s', '50s', '60s', '70s'],
+    datasets: [{
+      data: [12.08, 14.54, 16.75, 16.76, 14.36, 0],
+      borderColor: CYAN, backgroundColor: CYAN + '18',
+      borderWidth: 2.5, pointRadius: 5,
+      pointBackgroundColor: CYAN, pointBorderColor: '#161b22',
+      pointBorderWidth: 2, fill: true, tension: 0.35
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: {
+      label: ctx => ` ${ctx.parsed.y.toFixed(1)}% churn`
+    }}},
+    scales: {
+      x: { grid: { color: BORDER }, ticks: { color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── Inactivity ───────────────────────────────────────────────────────────────
+new Chart(document.getElementById('inactChart'), {
+  type: 'line',
+  data: {
+    labels: ['0', '1', '2', '3', '4', '5', '6'],
+    datasets: [{
+      label: 'Churn Rate %',
+      data: [51.72, 4.48, 15.39, 21.48, 29.89, 17.98, 15.32],
+      borderColor: RED, backgroundColor: RED + '15',
+      borderWidth: 2.5, pointRadius: 5,
+      pointBackgroundColor: RED, pointBorderColor: '#161b22',
+      pointBorderWidth: 2, fill: true, tension: 0.3
+    }]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { display: false }, tooltip: { callbacks: {
+      label: ctx => ` ${ctx.parsed.y.toFixed(1)}% churn`
+    }}},
+    scales: {
+      x: { grid: { color: BORDER }, ticks: { color: '#8b949e' }, title: { display: true, text: 'Months Inactive', color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── Risk segments ────────────────────────────────────────────────────────────
+new Chart(document.getElementById('riskChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Low Risk', 'High Risk', 'Medium Risk'],
+    datasets: [{
+      data: [19.5, 12.9, 6.62],
+      backgroundColor: [RED + 'cc', AMBER + 'cc', GREEN + 'cc'],
+      borderColor: [RED, AMBER, GREEN],
+      borderWidth: 1,
+      borderRadius: 7, borderSkipped: false
+    }]
+  },
+  options: {
+    ...barOpts(false),
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── Spending segments ────────────────────────────────────────────────────────
+new Chart(document.getElementById('spendChart'), {
+  type: 'bar',
+  data: {
+    labels: ['Low Spenders', 'Mid Spenders', 'Top Spenders'],
+    datasets: [{
+      data: [21.35, 18.35, 9.32],
+      backgroundColor: [RED + 'cc', AMBER + 'cc', GREEN + 'cc'],
+      borderColor: [RED, AMBER, GREEN],
+      borderWidth: 1,
+      borderRadius: 7, borderSkipped: false
+    }]
+  },
+  options: {
+    ...barOpts(false),
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── Contacts ─────────────────────────────────────────────────────────────────
+new Chart(document.getElementById('contactsChart'), {
+  type: 'bar',
+  data: {
+    labels: ['0', '1', '2', '3', '4', '5', '6'],
+    datasets: [{
+      data: [1.75, 7.2, 12.49, 20.15, 22.63, 33.52, 100.0],
+      backgroundColor: [GREEN+'cc', GREEN+'cc', AMBER+'cc', AMBER+'cc', RED+'99', RED+'cc', RED],
+      borderRadius: 5, borderSkipped: false
+    }]
+  },
+  options: {
+    ...barOpts(false),
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#8b949e' }, title: { display: true, text: 'Contacts in 12 months', color: '#8b949e' } },
+      y: { grid: { color: BORDER }, ticks: { color: '#8b949e', callback: v => v + '%' } }
+    }
+  }
+});
+
+// ── Tab switching ────────────────────────────────────────────────────────────
+function show(id, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+</script>
+</body>
+</html>
