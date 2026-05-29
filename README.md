@@ -127,4 +127,4 @@ XGBoost 5-Fold CV: **0.9929 mean AUC** (σ = 0.002)
 
 Built by **Saloni Kabadi** — Data Analyst at HDFC Bank.
 
-[linkedin.com/in/saloni-kabadi](https://linkedin.com/in/saloni-kabadi) · [github.com/SaloniKabadi](https://github.com/SaloniKabadi)
+[linkedin.com/in/saloni-kabadi-69325036a](https://www.linkedin.com/in/saloni-kabadi-69325036a) · [github.com/SaloniKabadi](https://github.com/SaloniKabadi)
