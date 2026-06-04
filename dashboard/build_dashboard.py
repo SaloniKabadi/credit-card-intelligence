@@ -116,6 +116,7 @@ fig_donut.update_layout(
     annotations=[dict(text=f"<b>{churn_rate}%</b><br>Churn", x=0.5, y=0.5,
                       font=dict(size=16, color=AMBER), showarrow=False)],
     height=320,
+    
 )
 
 # Chart 2 — Churn by card category
