@@ -2,6 +2,8 @@
 
 > End-to-end banking analytics: ETL pipeline · SQL segmentation · Churn prediction at **0.9932 AUC** · Interactive dashboard
 
+🔗 **Live dashboard:** [salonikabadi.github.io/credit-card-intelligence](https://salonikabadi.github.io/credit-card-intelligence/)
+
 ---
 
 ## 🔍 Problem Statement
